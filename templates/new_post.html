@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{% if post %}Редактирование записи{% else %}Создание записи{% endif %}{% endblock %}
+{% block content %}
+  <html>
+    <body>
+      <p class="lead">{% if post %}Редактирование записи{% else %}Создание записи{% endif %}</p>
+      <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          {{ form.as_p }}
+          <input type='submit' value={% if post %}'Сохранить'{% else %}'Добавить'{% endif %} accept="image/x-png,image/gif,image/jpeg"/>
+      </form>
+    </body>
+  </html>
+{% endblock %}
