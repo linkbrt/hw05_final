@@ -1,9 +1,9 @@
-from django.forms import ModelForm, Textarea
+from django import forms
 
 from .models import Comment, Post
 
 
-class PostForm(ModelForm):
+class PostForm(forms.ModelForm):
     class Meta:
         model = Post
         fields = ['text', 'group', 'image', ]
@@ -13,16 +13,31 @@ class PostForm(ModelForm):
             'image': 'Изображение'
         }
         help_texts = {
-            'text': ' Введите текст для публикации',
-            'group': 'Выберите группу для публикации',
-            'image': 'Максимальный разрешенный размер файла 1MB',
+            'text': 'Текст записи:',
+            'group': 'Выберите группу для публикации:',
+            'image': 'Загрузите изображение:',
+        }
+        widgets = {
+            'text': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 5, 'id': "FormControlText",
+                'placeholder': 'Введите текст для публикации'}
+            ),
+            'group': forms.Select(attrs={
+                'class': 'form-control',
+                'id': "FormControlGroup"}
+            ),
+            'image': forms.FileInput(attrs={
+                'class': 'custom-file-input',
+                'id': "customFile"}
+            ),
         }
 
 
-class CommentForm(ModelForm):
+class CommentForm(forms.ModelForm):
     class Meta:
         model = Comment
         fields = ['text', ]
         widgets = {
-            'text': Textarea(attrs={'rows': 2}),
+            'text': forms.Textarea(attrs={'rows': 2}),
         }

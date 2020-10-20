@@ -4,10 +4,24 @@
   <html>
     <body>
       <p class="lead">{% if post %}Редактирование записи{% else %}Создание записи{% endif %}</p>
-      <form method="post" enctype="multipart/form-data">
-          {% csrf_token %}
-          {{ form.as_p }}
-          <input type='submit' value={% if post %}'Сохранить'{% else %}'Добавить'{% endif %} accept="image/x-png,image/gif,image/jpeg"/>
+      <form method="post" action="{% url 'new_post' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="FormControlText">{{ form.text.help_text }}</label>
+          {{ form.text }}
+        </div>
+        <div class="form-group">
+          <label for="FormControlGroup">{{ form.group.help_text }}</label>
+          {{ form.group }}
+        </div>
+        <div class="custom-file">
+          <label class="custom-file-label" for="customFile">{{ form.image.help_text }}</label>
+          {{ form.image }}
+        </div>
+        <div class="form-group">
+          {{ form.image.errors }}
+        </div>
+        <button type='submit' class="btn btn-primary mb-2" accept="image/x-png,image/gif,image/jpeg">{% if post %}Сохранить{% else %}Добавить{% endif %}</button>
       </form>
     </body>
   </html>

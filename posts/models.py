@@ -37,8 +37,7 @@ class Post(models.Model):
     image = models.ImageField(upload_to='posts/',
                               validators=[
                                   validate_image_file_extension,
-                                  validate_file_size,
-                                ],
+                                  validate_file_size],
                               blank=True, null=True)
 
 
