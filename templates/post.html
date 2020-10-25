@@ -1,12 +1,12 @@
-{% extends "base.html" %}
+{% extends "default/base.html" %}
 {% block title %}Просмотр записи{% endblock %}
 {% block content %}
   <main role="main" class="container">
     <div class="row">
-      {% include "profile_item.html" with author=author %}
+      {% include "default/profile_item.html" with post=post %}
       <div class="col-md-9">
-        {% include "post_item.html" with post=post %}
-        {% include "comments.html" with comments=post.comments.all %}
+        {% include "default/post_item.html" with post=post %}
+        {% include "default/comments.html" with comments=post.comments.all %}
       </div>
     </div>
   </main> 

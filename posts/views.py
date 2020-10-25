@@ -23,6 +23,7 @@ def index(request):
 @login_required
 def follow_index(request):
     post_list = Post.objects.filter(
+        # Не понимаю как сделать лучше ¯\_(ツ)_/¯
         author__following__in=request.user.follower.all()
     )
     paginator = Paginator(post_list, 10)
@@ -73,21 +74,20 @@ def profile(request, username):
         following = Follow.objects.filter(user=request.user,
                                           author=author).exists()
     return render(request, 'profile.html', {
+        'author': author,
         'page': page,
         'paginator': paginator,
-        'author': author,
         'following': following,
     })
 
 
 def post_view(request, username, post_id):
     form_comment = CommentForm()
-    author = get_object_or_404(User, username=username)
-    post = get_object_or_404(Post, pk=post_id, author=author)
+    post = get_object_or_404(Post, id=post_id, author__username=username)
 
     return render(request, 'post.html', {
+        'author': post.author,
         'post': post,
-        'author': author,
         'form': form_comment,
     })
 
@@ -112,9 +112,9 @@ def add_comment(request, username, post_id):
 
 @login_required
 def post_edit(request, username, post_id):
+    post = get_object_or_404(Post, id=post_id, author__username=username)
     if request.user.username != username:
         return redirect('post_view', username=username, post_id=post_id)
-    post = get_object_or_404(Post, id=post_id, author__username=username)
     form = PostForm(request.POST or None,
                     files=request.FILES or None,
                     instance=post)

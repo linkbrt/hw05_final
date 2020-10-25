@@ -28,8 +28,7 @@ class TestPostMethods(TestCase):
             }
 
     def test_profile_page_will_be_displayed(self):
-        response = self.client.get(reverse('profile',
-                                           args=[self.user.username],
+        response = self.client.get(reverse('profile', kwargs={'username': self.user.username},
                                            ),
                                    follow=True, )
         self.assertEqual(response.status_code, 200)
@@ -104,11 +103,11 @@ class TestPostMethods(TestCase):
                     post.group,
                     msg='Запись изменилась не корректно',
         )
-        self.test_group = Group.objects.create(
+        test_group = Group.objects.create(
             title='Group',
             slug='group',
             description='33333')
-        post.group = self.test_group
+        post.group = test_group
         post.save()
         response = self.client.get(reverse('group_posts',
                                            args=[self.group.slug]))

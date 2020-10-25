@@ -1,19 +1,19 @@
-{% extends "base.html" %} 
+{% extends "default/base.html" %}
 {% block title %}Последние обновления {% endblock %}
 
 {% block content %}
 <div class="container">
 
-  {% include "menu.html" with follow=True %}
+  {% include "default/menu.html" with follow=True %}
 
   <h1>Подписки</h1>
 
   {% for post in page %}
-      {% include "post_item.html" with post=post %}
+      {% include "default/post_item.html" with post=post %}
   {% endfor %}
 
   {% if page.has_other_pages %}
-      {% include "paginator.html" with items=page paginator=paginator%}
+      {% include "default/paginator.html" with items=page paginator=paginator%}
   {% endif %}
 
 </div>

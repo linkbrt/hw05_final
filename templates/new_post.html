@@ -1,10 +1,14 @@
-{% extends "base.html" %}
+{% extends "default/base.html" %}
 {% block title %}{% if post %}Редактирование записи{% else %}Создание записи{% endif %}{% endblock %}
 {% block content %}
   <html>
     <body>
       <p class="lead">{% if post %}Редактирование записи{% else %}Создание записи{% endif %}</p>
-      <form method="post" action="{% url 'new_post' %}" enctype="multipart/form-data">
+      {% if post %}
+        <form method="post" action="{% url 'post_edit' post.author.username post.id %}" enctype="multipart/form-data">
+      {% else %}
+        <form method="post" action="{% url 'new_post' %}" enctype="multipart/form-data"></form>
+      {% endif %}
         {% csrf_token %}
         <div class="form-group">
           <label for="FormControlText">{{ form.text.help_text }}</label>
