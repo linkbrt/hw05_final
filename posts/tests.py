@@ -1,12 +1,11 @@
 import os
 
 from django.contrib.auth.models import User
-from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.urls import reverse
-from PIL import Image
 
-from posts.models import Group, Post, Follow
+from posts.models import Comment, Follow, Group, Post
 
 
 class TestPostMethods(TestCase):
@@ -28,7 +27,8 @@ class TestPostMethods(TestCase):
             }
 
     def test_profile_page_will_be_displayed(self):
-        response = self.client.get(reverse('profile', kwargs={'username': self.user.username},
+        response = self.client.get(reverse('profile',
+                                           args=[self.user.username],
                                            ),
                                    follow=True, )
         self.assertEqual(response.status_code, 200)
@@ -58,7 +58,6 @@ class TestPostMethods(TestCase):
                              f"{reverse('login')}?next={reverse('new_post')}")
 
     def get_post_from_page(self, route_name):
-        cache.clear()
         kwargs = self.data_for_reverse_func[route_name]
         response = self.client.get(reverse(route_name, kwargs=kwargs))
         if 'page' in response.context:
@@ -111,41 +110,53 @@ class TestPostMethods(TestCase):
         post.save()
         response = self.client.get(reverse('group_posts',
                                            args=[self.group.slug]))
-        self.assertFalse(response.context['page'].object_list.exists())
+        self.assertFalse(response.context['paginator'].count)
 
     def test_code_404_if_page_doesnt_exist(self):
         response = self.client.get('/group/')
         self.assertEqual(response.status_code, 404)
 
     def test_picture_is_displayed_correctly(self):
-        img = Image.new(mode="RGB", size=(200, 200), color='blue')
-        img.save('posts/img01.png')
-        img.save('media/posts/img01.png')
-        with open('posts/img01.png', 'rb') as img:
-            self.create_test_post(img)
-        for route_name in self.data_for_reverse_func:
-            with self.subTest(name=route_name):
-                post = self.get_post_from_page(route_name)
-                self.assertEqual(post.image, 'posts/img01.png')
-        os.remove("posts/img01.png")
-        os.remove("media/posts/img01.png")
-
-    def test_triggered_protection_download_non_image_file_formats(self):
-        with open('requirements.txt', 'r') as fake_img:
-            response = self.auth_client.post(
+        small_gif = (
+            b'\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x00\x00\x00\x21\xf9\x04'
+            b'\x01\x0a\x00\x01\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02'
+            b'\x02\x4c\x01\x00\x3b'
+        )
+        _image = SimpleUploadedFile(name='test_image.gif',
+                                    content=small_gif,
+                                    content_type='image/gif')
+        self.auth_client.post(
                 reverse('new_post'), {
                     'text': 'test',
                     'author': self.user,
                     'group': self.group.id,
-                    'image': fake_img,
+                    'image': _image,
                 },
                 follow=True, )
-            self.assertFormError(
-                response,
-                'form',
-                'image',
-                errors='Загрузите правильное изображение. Файл, который вы ' +
-                       'загрузили, поврежден или не является изображением.')
+        for route_name in self.data_for_reverse_func:
+            with self.subTest(name=route_name):
+                post = self.get_post_from_page(route_name)
+                self.assertEqual(post.image.name, f'posts/{_image.name}')
+        os.remove(f'media/posts/{_image.name}')
+
+    def test_triggered_protection_download_non_image_file_formats(self):
+        _file = SimpleUploadedFile(name='test_image.txt',
+                                   content=b'test',
+                                   content_type='file/txt')
+        response = self.auth_client.post(
+            reverse('new_post'), {
+                'text': 'test',
+                'author': self.user,
+                'group': self.group.id,
+                'image': _file,
+            },
+            follow=True, )
+        self.assertFormError(
+            response,
+            'form',
+            'image',
+            errors='Загрузите правильное изображение. Файл, который вы ' +
+                   'загрузили, поврежден или не является изображением.')
 
     def test_checking_that_page_is_cached(self):
         resp1 = self.client.get(reverse('index'))
@@ -161,13 +172,17 @@ class TestPostMethods(TestCase):
         with self.subTest(msg=msg):
             self.auth_client.get(reverse('profile_follow',
                                          args=[test_user.username]))
-            self.assertTrue(self.user.follower.filter(pk=1).exists())
+            self.assertTrue(
+                Follow.objects.get(user=self.user, author=test_user)
+            )
         # Test auth user can unfollow from other users
         msg = "Auth user can't unfollow from other users"
         with self.subTest(msg=msg):
             self.auth_client.get(reverse('profile_unfollow',
                                          args=[test_user.username]))
-            self.assertFalse(self.user.follower.filter(pk=1).exists())
+            self.assertFalse(
+                Follow.objects.filter(user=self.user, author=test_user)
+            )
 
     def test_follow_index(self):
         test_user = User.objects.create(username='test_follow',
@@ -176,46 +191,50 @@ class TestPostMethods(TestCase):
                             text='test',
                             group=self.group)
         follow = Follow.objects.create(user=self.user, author=test_user)
-        response = self.auth_client.get(reverse('follow_index'))
         # Test auth user can view posts from following users
         msg = "Auth user can't view posts from following users"
         with self.subTest(msg=msg):
-            self.assertTrue(response.context['page'].object_list)
+            response = self.auth_client.get(reverse('follow_index'))
+            post = response.context['page'][0]
+            self.assertEqual(post.text, 'test',
+                             msg='Something wrong with text field')
+            self.assertEqual(post.author, test_user,
+                             msg='Something wrong with author field')
+            self.assertEqual(post.group, self.group,
+                             msg='Something wrong with group field')
         follow.delete()
-        response = self.auth_client.get(reverse('follow_index'))
         # Test auth user can't view posts from unfollowing users
         msg = "Auth user can view posts from unfollowing users"
         with self.subTest(msg=msg):
+            response = self.auth_client.get(reverse('follow_index'))
             self.assertFalse(response.context['page'].object_list)
 
     def test_comment_system(self):
         post = Post.objects.create(author=self.user,
                                    text='test',
                                    group=self.group)
-        # Test unauth user can't create comment
-        response = self.client.post(
-            reverse('add_comment', kwargs={
-                'username': self.user.username,
-                'post_id': post.id,
-            }),
-            data={'text': 'test'},
-            follow=True)
         add_comment_reverse = reverse('add_comment',
                                       args=[self.user.username, post.id])
+        # Test unauth user can't create comment
         msg = "Unauth user can create comment"
         with self.subTest(msg=msg):
+            response = self.client.post(
+                add_comment_reverse,
+                data={'text': 'test'}
+            )
             self.assertRedirects(
                 response,
                 f"{reverse('login')}?next=" +
-                f"{add_comment_reverse}")
+                f"{add_comment_reverse}"
+            )
         # Test auth user can create comment
-        response = self.auth_client.post(
-            reverse('add_comment', kwargs={
-                'username': self.user.username,
-                'post_id': post.id,
-            }),
-            data={'text': 'test'},
-            follow=True)
         msg = "Auth user can't create comment"
         with self.subTest(msg=msg):
-            self.assertEqual(response.context['comments'][0].text, 'test')
+            self.auth_client.post(
+                add_comment_reverse,
+                data={'text': 'test'},
+                follow=True
+            )
+            self.assertTrue(
+                Comment.objects.get(post=post, text='test', author=self.user)
+            )
