@@ -1,15 +1,15 @@
-{% extends "default/base.html" %}
+{% extends "base.html" %}
 {% block title %}Записи сообщества {{ group.title }}{% endblock %}
 {% block content%}
   <div class="container">
     <h1>{{ group.title }}</h1>
     <p>{{ group.description }}</p>
     {% for post in page %}
-      {% include "default/post_item.html" with post=post %}
+      {% include "includes/post_item.html" with post=post %}
     {% endfor %}
 
     {% if page.has_other_pages %}
-      {% include "default/paginator.html" with items=page paginator=paginator %}
+      {% include "includes/paginator.html" with items=page paginator=paginator %}
     {% endif %}
   </div>
 {% endblock %}

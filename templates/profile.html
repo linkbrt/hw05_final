@@ -1,16 +1,16 @@
-{% extends "default/base.html" %}
+{% extends "base.html" %}
 {% block title %}Профиль{% endblock %}
 {% block content %}
   <main role="main" class="container">
     <div class="row">
-      {% include "default/profile_item.html" with post=page.0 %}
+      {% include "includes/profile_item.html" with post=page.0 %}
       <div class="col-md-9">                
         {% for post in page %}
-          {% include "default/post_item.html" with post=post %}
+          {% include "includes/post_item.html" with post=post %}
         {% endfor %} 
 
         {% if page.has_other_pages %}
-          {% include "default/paginator.html" with items=page paginator=paginator %}
+          {% include "includes/paginator.html" with items=page paginator=paginator %}
         {% endif %}
       </div>
     </div>
