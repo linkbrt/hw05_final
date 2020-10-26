@@ -21,8 +21,7 @@ def index(request):
 @login_required
 def follow_index(request):
     post_list = Post.objects.filter(
-        # Не понимаю как сделать лучше ¯\_(ツ)_/¯
-        author__following__in=request.user.follower.all()
+        author__following__user=request.user
     )
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
@@ -82,7 +81,6 @@ def profile(request, username):
 def post_view(request, username, post_id):
     form_comment = CommentForm()
     post = get_object_or_404(Post, id=post_id, author__username=username)
-
     return render(request, 'post.html', {
         'author': post.author,
         'post': post,

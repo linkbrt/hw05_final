@@ -67,13 +67,10 @@ class TestPostMethods(TestCase):
         else:
             return response.context['post']
 
-    def create_test_post(self, image=None):
-        if image:
-            image = image.name
+    def create_test_post(self):
         return Post.objects.create(text='test',
                                    author=self.user,
-                                   group=self.group,
-                                   image=image)
+                                   group=self.group)
 
     def test_viewing_post_on_pages(self):
         db_post = self.create_test_post()
@@ -175,6 +172,10 @@ class TestPostMethods(TestCase):
             self.assertTrue(
                 Follow.objects.get(user=self.user, author=self.test_user)
             )
+            self.assertEqual(
+                Follow.objects.all().count(),
+                1,
+            )
 
     def test_auth_user_can_unfollow_from_other_users(self):
         Follow.objects.create(user=self.user, author=self.test_user)
@@ -185,6 +186,9 @@ class TestPostMethods(TestCase):
                                          args=[self.test_user.username]))
             self.assertFalse(
                 Follow.objects.filter(user=self.user, author=self.test_user)
+            )
+            self.assertFalse(
+                Follow.objects.all().exists()
             )
 
     def test_auth_user_can_view_posts_from_following_users(self):
@@ -212,7 +216,7 @@ class TestPostMethods(TestCase):
         msg = "Auth user can view posts from unfollowing users"
         with self.subTest(msg=msg):
             response = self.auth_client.get(reverse('follow_index'))
-            self.assertFalse(response.context['page'].object_list)
+            self.assertFalse(response.context['paginator'].count)
 
     def test_unauth_user_cant_create_comment_(self):
         post = Post.objects.create(author=self.user,
@@ -232,6 +236,11 @@ class TestPostMethods(TestCase):
                 f"{reverse('login')}?next=" +
                 f"{add_comment_reverse}"
             )
+            self.assertFalse(
+                Comment.objects.filter(post=post,
+                                       text='test',
+                                       author=self.user).exists()
+            )
 
     def test_auth_user_car_create_comment(self):
         post = Post.objects.create(author=self.user,
@@ -247,6 +256,7 @@ class TestPostMethods(TestCase):
                 data={'text': 'test'},
                 follow=True
             )
-            self.assertTrue(
-                Comment.objects.get(post=post, text='test', author=self.user)
+            self.assertEqual(
+                Comment.objects.all().count(),
+                1,
             )

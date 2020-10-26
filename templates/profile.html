@@ -3,7 +3,7 @@
 {% block content %}
   <main role="main" class="container">
     <div class="row">
-      {% include "includes/profile_item.html" with post=page.0 %}
+      {% include "includes/profile_item.html" with follow_button=True %}
       <div class="col-md-9">                
         {% for post in page %}
           {% include "includes/post_item.html" with post=post %}
