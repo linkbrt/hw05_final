@@ -25,6 +25,8 @@ class TestPostMethods(TestCase):
             'post_view': {'username': self.user.username, 'post_id': 1},
             'group_posts': {'slug': self.group.slug}
             }
+        self.test_user = User.objects.create(username='test_follow',
+                                             password='test')
 
     def test_profile_page_will_be_displayed(self):
         response = self.client.get(reverse('profile',
@@ -164,33 +166,32 @@ class TestPostMethods(TestCase):
         resp2 = self.client.get(reverse('index'))
         self.assertHTMLEqual(str(resp1), str(resp2))
 
-    def test_auth_user_can_follow_and_unfollow(self):
-        test_user = User.objects.create(username='test_follow',
-                                        password='test')
+    def test_auth_user_can_follow_to_other_users(self):
         # Test auth user can follow to other users
         msg = "Auth user can't follow to other users"
         with self.subTest(msg=msg):
             self.auth_client.get(reverse('profile_follow',
-                                         args=[test_user.username]))
+                                         args=[self.test_user.username]))
             self.assertTrue(
-                Follow.objects.get(user=self.user, author=test_user)
+                Follow.objects.get(user=self.user, author=self.test_user)
             )
+
+    def test_auth_user_can_unfollow_from_other_users(self):
+        Follow.objects.create(user=self.user, author=self.test_user)
         # Test auth user can unfollow from other users
         msg = "Auth user can't unfollow from other users"
         with self.subTest(msg=msg):
             self.auth_client.get(reverse('profile_unfollow',
-                                         args=[test_user.username]))
+                                         args=[self.test_user.username]))
             self.assertFalse(
-                Follow.objects.filter(user=self.user, author=test_user)
+                Follow.objects.filter(user=self.user, author=self.test_user)
             )
 
-    def test_follow_index(self):
-        test_user = User.objects.create(username='test_follow',
-                                        password='test')
-        Post.objects.create(author=test_user,
+    def test_auth_user_can_view_posts_from_following_users(self):
+        Post.objects.create(author=self.test_user,
                             text='test',
                             group=self.group)
-        follow = Follow.objects.create(user=self.user, author=test_user)
+        Follow.objects.create(user=self.user, author=self.test_user)
         # Test auth user can view posts from following users
         msg = "Auth user can't view posts from following users"
         with self.subTest(msg=msg):
@@ -198,18 +199,22 @@ class TestPostMethods(TestCase):
             post = response.context['page'][0]
             self.assertEqual(post.text, 'test',
                              msg='Something wrong with text field')
-            self.assertEqual(post.author, test_user,
+            self.assertEqual(post.author, self.test_user,
                              msg='Something wrong with author field')
             self.assertEqual(post.group, self.group,
                              msg='Something wrong with group field')
-        follow.delete()
+
+    def test_auth_user_cant_view_posts_from_unfollowing_users(self):
+        Post.objects.create(author=self.test_user,
+                            text='test',
+                            group=self.group)
         # Test auth user can't view posts from unfollowing users
         msg = "Auth user can view posts from unfollowing users"
         with self.subTest(msg=msg):
             response = self.auth_client.get(reverse('follow_index'))
             self.assertFalse(response.context['page'].object_list)
 
-    def test_comment_system(self):
+    def test_unauth_user_cant_create_comment_(self):
         post = Post.objects.create(author=self.user,
                                    text='test',
                                    group=self.group)
@@ -227,6 +232,13 @@ class TestPostMethods(TestCase):
                 f"{reverse('login')}?next=" +
                 f"{add_comment_reverse}"
             )
+
+    def test_auth_user_car_create_comment(self):
+        post = Post.objects.create(author=self.user,
+                                   text='test',
+                                   group=self.group)
+        add_comment_reverse = reverse('add_comment',
+                                      args=[self.user.username, post.id])
         # Test auth user can create comment
         msg = "Auth user can't create comment"
         with self.subTest(msg=msg):
