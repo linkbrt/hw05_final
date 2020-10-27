@@ -234,7 +234,7 @@ class TestPostMethods(TestCase):
                 f"{add_comment_reverse}"
             )
             self.assertEqual(
-                Comment.objects.all().exists(),
+                Comment.objects.all().count(),
                 0,
             )
 
