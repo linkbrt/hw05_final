@@ -185,9 +185,6 @@ class TestPostMethods(TestCase):
             self.auth_client.get(reverse('profile_unfollow',
                                          args=[self.test_user.username]))
             self.assertFalse(
-                Follow.objects.filter(user=self.user, author=self.test_user)
-            )
-            self.assertFalse(
                 Follow.objects.all().exists()
             )
 
@@ -216,7 +213,7 @@ class TestPostMethods(TestCase):
         msg = "Auth user can view posts from unfollowing users"
         with self.subTest(msg=msg):
             response = self.auth_client.get(reverse('follow_index'))
-            self.assertFalse(response.context['paginator'].count)
+            self.assertEqual(response.context['paginator'].count, 0)
 
     def test_unauth_user_cant_create_comment_(self):
         post = Post.objects.create(author=self.user,
@@ -236,10 +233,9 @@ class TestPostMethods(TestCase):
                 f"{reverse('login')}?next=" +
                 f"{add_comment_reverse}"
             )
-            self.assertFalse(
-                Comment.objects.filter(post=post,
-                                       text='test',
-                                       author=self.user).exists()
+            self.assertEqual(
+                Comment.objects.all().exists(),
+                0,
             )
 
     def test_auth_user_car_create_comment(self):
